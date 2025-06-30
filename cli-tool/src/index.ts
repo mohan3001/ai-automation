@@ -10,6 +10,7 @@ import { runCommand } from './commands/run';
 import { analyzeCommand } from './commands/analyze';
 import { searchCommand } from './commands/search';
 import { statusCommand } from './commands/status';
+import { listCommand } from './commands/list';
 
 const program = new Command();
 
@@ -80,6 +81,12 @@ program
   .argument('<query>', 'Search query')
   .option('-n, --num <number>', 'Number of results', '10')
   .action(searchCommand);
+
+// List command
+program
+  .command('list')
+  .description('List all test files in the project')
+  .action(listCommand);
 
 // Status command
 program
