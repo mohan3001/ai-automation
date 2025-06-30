@@ -1,0 +1,38 @@
+{
+  "name": "ai-test-automation",
+  "version": "1.0.0",
+  "description": "AI-powered test automation framework with Playwright, RAG, and LLM",
+  "main": "index.js",
+  "scripts": {
+    "setup": "python setup.py",
+    "generate": "python generate_test.py",
+    "test:playwright": "cd playwright-framework && npm test",
+    "test:headed": "cd playwright-framework && npm run test:headed",
+    "install:all": "npm run install:playwright && npm run install:ai && npm run install:cli",
+    "install:playwright": "cd playwright-framework && npm install",
+    "install:ai": "cd ai-service && pip install -r requirements.txt",
+    "install:cli": "cd cli-tool && npm install",
+    "build:cli": "cd cli-tool && npm run build",
+    "dev:cli": "cd cli-tool && npm run dev",
+    "clean": "rm -rf chroma_db && rm -rf playwright-framework/node_modules && rm -rf cli-tool/node_modules && rm -rf cli-tool/dist"
+  },
+  "keywords": [
+    "test-automation",
+    "ai",
+    "llm",
+    "playwright",
+    "rag",
+    "ollama",
+    "chromadb"
+  ],
+  "author": "AI Test Automation Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mohan3001/ai-test-automation.git"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.9.0"
+  }
+} 
