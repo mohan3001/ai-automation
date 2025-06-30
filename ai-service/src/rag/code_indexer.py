@@ -10,10 +10,17 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
 import tree_sitter
 from tree_sitter import Language, Parser
 import markdown
+
+# Try to import sentence_transformers, fallback to simple embedding if not available
+try:
+    from sentence_transformers import SentenceTransformer
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
+    print("Warning: sentence_transformers not available, using simple embedding fallback")
 
 
 class CodeIndexer:
@@ -27,8 +34,11 @@ class CodeIndexer:
             metadata={"description": "Indexed codebase for test generation"}
         )
         
-        # Initialize sentence transformer for embeddings
-        self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        # Initialize sentence transformer for embeddings if available
+        if SENTENCE_TRANSFORMERS_AVAILABLE:
+            self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
+        else:
+            self.embedder = None
         
         # Setup tree-sitter for code parsing
         self._setup_tree_sitter()
@@ -51,21 +61,40 @@ class CodeIndexer:
             self.ts_lang = Language('build/languages.so', 'typescript')
             self.js_lang = Language('build/languages.so', 'javascript')
             self.py_lang = Language('build/languages.so', 'python')
+            self.tree_sitter_available = True
         except:
-            # Build languages if not available
-            Language.build_library(
-                'build/languages.so',
-                [
+            # Try to build languages if vendor directories exist
+            try:
+                vendor_paths = [
                     'vendor/tree-sitter-typescript',
                     'vendor/tree-sitter-javascript', 
                     'vendor/tree-sitter-python'
                 ]
-            )
-            self.ts_lang = Language('build/languages.so', 'typescript')
-            self.js_lang = Language('build/languages.so', 'javascript')
-            self.py_lang = Language('build/languages.so', 'python')
+                
+                # Check if vendor directories exist
+                if all(os.path.exists(path) for path in vendor_paths):
+                    Language.build_library(
+                        'build/languages.so',
+                        vendor_paths
+                    )
+                    self.ts_lang = Language('build/languages.so', 'typescript')
+                    self.js_lang = Language('build/languages.so', 'javascript')
+                    self.py_lang = Language('build/languages.so', 'python')
+                    self.tree_sitter_available = True
+                else:
+                    print("Warning: Tree-sitter vendor directories not found, using simple parsing")
+                    self.tree_sitter_available = False
+                    self.ts_lang = None
+                    self.js_lang = None
+                    self.py_lang = None
+            except Exception as e:
+                print(f"Warning: Failed to setup tree-sitter: {e}")
+                self.tree_sitter_available = False
+                self.ts_lang = None
+                self.js_lang = None
+                self.py_lang = None
         
-        self.parser = Parser()
+        self.parser = Parser() if self.tree_sitter_available else None
     
     def index_codebase(self, root_path: str) -> Dict[str, Any]:
         """Index the entire codebase."""
@@ -132,19 +161,23 @@ class CodeIndexer:
         """Process code files with syntax-aware chunking."""
         chunks = []
         
-        # Set appropriate language for parser
-        if file_path.suffix in {'.ts', '.tsx'}:
-            self.parser.set_language(self.ts_lang)
-        elif file_path.suffix in {'.js', '.jsx'}:
-            self.parser.set_language(self.js_lang)
-        elif file_path.suffix == '.py':
-            self.parser.set_language(self.py_lang)
-        
-        try:
-            tree = self.parser.parse(bytes(content, 'utf8'))
-            chunks = self._extract_code_chunks(tree, content, file_path)
-        except Exception as e:
-            # Fallback to simple chunking if parsing fails
+        if self.tree_sitter_available and self.parser:
+            # Set appropriate language for parser
+            if file_path.suffix in {'.ts', '.tsx'}:
+                self.parser.set_language(self.ts_lang)
+            elif file_path.suffix in {'.js', '.jsx'}:
+                self.parser.set_language(self.js_lang)
+            elif file_path.suffix == '.py':
+                self.parser.set_language(self.py_lang)
+            
+            try:
+                tree = self.parser.parse(bytes(content, 'utf8'))
+                chunks = self._extract_code_chunks(tree, content, file_path)
+            except Exception as e:
+                # Fallback to simple chunking if parsing fails
+                chunks = self._simple_chunking(content, file_path)
+        else:
+            # Use simple chunking if tree-sitter is not available
             chunks = self._simple_chunking(content, file_path)
         
         return chunks
@@ -219,7 +252,10 @@ class CodeIndexer:
             chunk_id = f"{file_path}_{i}"
             
             # Generate embedding
-            embedding = self.embedder.encode(chunk["content"]).tolist()
+            if self.embedder:
+                embedding = self.embedder.encode(chunk["content"]).tolist()
+            else:
+                embedding = self._simple_embedding(chunk["content"])
             
             # Add to collection
             self.collection.add(
@@ -229,9 +265,32 @@ class CodeIndexer:
                 ids=[chunk_id]
             )
     
+    def _simple_embedding(self, content: str) -> List[float]:
+        """Fallback embedding method if sentence_transformers is not available."""
+        import hashlib
+        import struct
+        
+        # Create a simple hash-based embedding
+        hash_obj = hashlib.sha256(content.encode('utf-8'))
+        hash_bytes = hash_obj.digest()
+        
+        # Convert hash to list of floats
+        embedding = []
+        for i in range(0, len(hash_bytes), 4):
+            if i + 4 <= len(hash_bytes):
+                # Convert 4 bytes to float
+                float_val = struct.unpack('f', hash_bytes[i:i+4])[0]
+                embedding.append(float_val)
+        
+        # Pad or truncate to 384 dimensions
+        while len(embedding) < 384:
+            embedding.append(0.0)
+        
+        return embedding[:384]
+    
     def search(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """Search for relevant code chunks."""
-        query_embedding = self.embedder.encode(query).tolist()
+        query_embedding = self.embedder.encode(query).tolist() if self.embedder else self._simple_embedding(query)
         
         results = self.collection.query(
             query_embeddings=[query_embedding],

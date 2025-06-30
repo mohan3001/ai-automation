@@ -9,9 +9,23 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 import json
 import os
+import sys
 
-from .rag.code_indexer import CodeIndexer
-from .llm.ollama_service import OllamaService
+# Add the current directory to the path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Import with error handling
+try:
+    from rag.code_indexer import CodeIndexer
+    from llm.ollama_service import OllamaService
+    IMPORTS_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Some imports failed: {e}")
+    IMPORTS_AVAILABLE = False
+    CodeIndexer = None
+    OllamaService = None
 
 
 class AIService:
@@ -23,12 +37,18 @@ class AIService:
                  ollama_url: str = "http://localhost:11434",
                  ollama_model: str = "mistral"):
         
+        if not IMPORTS_AVAILABLE:
+            raise ImportError("Required modules not available. Check dependencies.")
+        
         self.codebase_path = Path(codebase_path)
         self.db_path = db_path
         
         # Initialize components
-        self.indexer = CodeIndexer(db_path)
-        self.llm = OllamaService(ollama_url, ollama_model)
+        try:
+            self.indexer = CodeIndexer(db_path)
+            self.llm = OllamaService(ollama_url, ollama_model)
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize AI service components: {e}")
         
         # Service status
         self._indexed = False

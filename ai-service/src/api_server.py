@@ -16,8 +16,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import with try/except to handle missing dependencies gracefully
 try:
-    from ai_service import AIService
-    AI_SERVICE_AVAILABLE = True
+    from ai_service import AIService, IMPORTS_AVAILABLE
+    AI_SERVICE_AVAILABLE = IMPORTS_AVAILABLE
 except ImportError as e:
     print(f"Warning: AI Service not available due to missing dependencies: {e}")
     AI_SERVICE_AVAILABLE = False
@@ -49,10 +49,13 @@ if AI_SERVICE_AVAILABLE:
             codebase_path=project_root,
             db_path="./chroma_db",
             ollama_url="http://localhost:11434",
-            ollama_model="mistral"
+            ollama_model="mistral:latest"
         )
+        print(f"✅ AI Service initialized successfully with codebase path: {project_root}")
     except Exception as e:
         print(f"Warning: Failed to initialize AI service: {e}")
+        ai_service = None
+        AI_SERVICE_AVAILABLE = False
 
 # Pydantic models for request/response
 class SetupRequest(BaseModel):
@@ -90,7 +93,7 @@ async def health_check():
 @app.post("/setup")
 async def setup_service(request: SetupRequest):
     """Setup the AI service (index codebase, check LLM)."""
-    if not AI_SERVICE_AVAILABLE:
+    if not AI_SERVICE_AVAILABLE or ai_service is None:
         raise HTTPException(status_code=503, detail="AI Service not available - missing dependencies")
     
     try:
