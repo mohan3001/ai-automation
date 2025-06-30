@@ -30,7 +30,7 @@ export async function generateCommand(requirements: string, options: CommandOpti
     // Display the generated code
     console.log('\n' + chalk.blue.bold('Generated Test:'));
     console.log(chalk.gray('─'.repeat(50)));
-    console.log(result.code);
+    console.log(result.content);
     
     // Validate the generated code
     if (result.validation) {
@@ -66,7 +66,7 @@ export async function generateCommand(requirements: string, options: CommandOpti
         const testName = `generated-test-${Date.now()}`;
         
         const saveResponse = await axios.post(`${AI_SERVICE_URL}/save-test`, {
-          code: result.code,
+          code: result.content,
           test_name: testName,
           output_dir: outputDir
         });
@@ -87,7 +87,7 @@ export async function generateCommand(requirements: string, options: CommandOpti
       const testName = `generated-test-${Date.now()}`;
       
       const saveResponse = await axios.post(`${AI_SERVICE_URL}/save-test`, {
-        code: result.code,
+        code: result.content,
         test_name: testName,
         output_dir: outputDir
       });

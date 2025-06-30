@@ -43,34 +43,161 @@ git clone <your-repo>
 cd ai-test-automation
 ```
 
-2. **Install Dependencies**
+2. **Setup Python Virtual Environment**
+```bash
+# Navigate to AI service directory
+cd ai-service
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # You should see (venv) in prompt
+
+# Verify pip is available
+pip --version
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Deactivate virtual environment when done
+deactivate
+```
+
+3. **Install Node.js Dependencies**
 ```bash
 # Install Playwright framework
-cd playwright-framework
+cd ../playwright-framework
 npm install
-
-# Install AI service
-cd ../ai-service
-pip install -r requirements.txt
 
 # Install CLI tool
 cd ../cli-tool
 npm install
 ```
 
-3. **Setup Ollama**
+4. **Setup Ollama**
 ```bash
 # Install Ollama from https://ollama.ai/
 ollama pull mistral
 ```
 
-4. **Initialize the Framework**
+5. **Initialize the Framework**
 ```bash
 cd ..
 npm run setup
 ```
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### **"pip command not found" Error**
+```bash
+# Make sure you're in the virtual environment
+cd ai-service
+source venv/bin/activate
+
+# You should see (venv) in your prompt
+# Then install requirements
+pip install -r requirements.txt
+```
+
+#### **"requirements.txt not found" Error**
+```bash
+# Make sure you're in the correct directory
+cd ai-service
+ls -la  # Should show requirements.txt
+
+# If not found, check your current directory
+pwd
+```
+
+#### **Ollama Connection Issues**
+```bash
+# Check if Ollama is running
+ollama list
+
+# Start Ollama if not running
+ollama serve
+
+# Test connection
+curl http://localhost:11434/api/tags
+```
+
+#### **AI Service Won't Start**
+```bash
+# Make sure virtual environment is activated
+cd ai-service
+source venv/bin/activate
+
+# Check if port 8000 is available
+lsof -i :8000
+
+# Start with different port if needed
+uvicorn api_server:app --reload --host 0.0.0.0 --port 8001
+```
+
+#### **CLI Tool Not Found**
+```bash
+# Build the CLI tool
+cd cli-tool
+npm run build
+
+# Use the built version
+./dist/index.js --help
+```
+
 ## 📖 Usage
+
+### Starting the Services
+
+1. **Activate Python Virtual Environment**
+```bash
+cd ai-service
+source venv/bin/activate  # On macOS/Linux
+# venv\Scripts\activate   # On Windows
+```
+
+2. **Start Ollama (LLM Service)**
+```bash
+# Start Ollama service (if not already running)
+ollama serve
+
+# In another terminal, verify it's running
+ollama list
+```
+
+3. **Start AI Service**
+```bash
+# Navigate to AI service source directory
+cd src
+
+# Start the FastAPI server
+uvicorn api_server:app --reload --host 0.0.0.0 --port 8000
+```
+
+4. **Setup Framework (in new terminal)**
+```bash
+# Navigate to project root
+cd ../../
+
+# Activate virtual environment
+cd ai-service
+source venv/bin/activate
+
+# Run setup
+python setup.py
+```
+
+5. **Use CLI Tool**
+```bash
+# Build CLI tool (if not already built)
+cd ../cli-tool
+npm run build
+
+# Use the CLI
+./dist/index.js --help
+./dist/index.js setup
+./dist/index.js generate "test login functionality"
+```
 
 ### For QA Engineers
 
@@ -191,3 +318,5 @@ The framework supports multiple configuration levels:
 ## 📄 License
 
 MIT License - see LICENSE file for details 
+
+ai-test search "" 
