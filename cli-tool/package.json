@@ -1,0 +1,46 @@
+{
+  "name": "ai-test-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for AI-powered test automation",
+  "main": "dist/index.js",
+  "bin": {
+    "ai-test": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "test-automation",
+    "ai",
+    "llm",
+    "playwright",
+    "cli"
+  ],
+  "author": "AI Test Automation Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/jest": "^29.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.12",
+    "simple-git": "^3.20.0",
+    "axios": "^1.6.0",
+    "ora": "^7.0.1",
+    "boxen": "^7.1.1"
+  }
+} 
